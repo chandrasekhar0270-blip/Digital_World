@@ -227,25 +227,6 @@ COMMENT ON TABLE users IS
 
 
 -- ============================================================
--- TABLE 10: STRESS_LOGS  *** NEW — corporate burnout module ***
--- Purpose : Employee stress log submissions.
---           Feeds burnout risk calculation per user.
--- ============================================================
-CREATE TABLE stress_logs (
-    id           SERIAL          PRIMARY KEY,
-    user_id      TEXT            NOT NULL,
-    log_date     DATE            DEFAULT CURRENT_DATE,
-    stress_score INTEGER         CHECK (stress_score BETWEEN 1 AND 10),
-    tags         TEXT[],                     -- array e.g. ARRAY['deadline','workload']
-    notes        TEXT,
-    logged_at    TIMESTAMP       DEFAULT CURRENT_TIMESTAMP
-);
-
-COMMENT ON TABLE stress_logs IS
-  'Employee daily stress log entries. Feeds burnout risk score per user.';
-
-
--- ============================================================
 -- TABLE 11: BATCH_JOB_LOG  *** NEW — operations monitoring ***
 -- Purpose : Tracks compute job runs (burndown, stress score,
 --           net assets). Used by Admin batch job monitor view.
@@ -282,22 +263,6 @@ COMMENT ON TABLE dead_letter IS
 
 
 -- ============================================================
--- SEED DATA: Default admin user
--- Password: Admin@123 (bcrypt hash — change in production)
--- ============================================================
-INSERT INTO users (username, password_hash, role, department, emp_id, email)
-VALUES (
-    'admin',
-    '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4tbQGigIgi',
-    'admin',
-    'Technology',
-    'EMP000',
-    'admin@financialtwin.com'
-)
-ON CONFLICT (username) DO NOTHING;
-
-
--- ============================================================
 -- SEED DATA: Default market parameters
 -- ============================================================
 INSERT INTO stg_market_data (parameter, value, last_updated)
@@ -325,6 +290,200 @@ ALTER TABLE stg_market_data
 ADD CONSTRAINT stg_market_data_date_param_unique UNIQUE (last_updated, parameter);
 
 -- ============================================================
--- END OF SCHEMA SETUP
--- Expected output: 12 tables listed
+-- End of FINANCIAL TWIN 
+-- ============================================================
+
+===============================================================================================================================
+
+-- ============================================================
+-- Fitness Schema Begin
+-- ============================================================
+
+-- =========================================
+-- 1. Create Schema
+-- =========================================
+CREATE SCHEMA IF NOT EXISTS fitness;
+
+-- =========================================
+-- 2. Enable UUID extension (for auto UUIDs)
+-- =========================================
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- =========================================
+-- 3. Users Table
+-- =========================================
+CREATE TABLE fitness.users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    clerk_id VARCHAR(255) UNIQUE NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- =========================================
+-- 4. Runs Table
+-- =========================================
+CREATE TABLE fitness.runs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    
+    user_id UUID NOT NULL,
+    
+    distance_km DECIMAL(6,2) NOT NULL CHECK (distance_km > 0),
+    duration_sec INTEGER NOT NULL CHECK (duration_sec > 0),
+
+    -- Generated Columns
+    speed_kmh DECIMAL(5,2) GENERATED ALWAYS AS 
+        (distance_km / (duration_sec / 3600.0)) STORED,
+
+    pace_min_km DECIMAL(5,2) GENERATED ALWAYS AS 
+        ((duration_sec / 60.0) / distance_km) STORED,
+
+    run_date DATE NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+
+    -- Foreign Key
+    CONSTRAINT fk_runs_user
+        FOREIGN KEY (user_id)
+        REFERENCES fitness.users(id)
+        ON DELETE CASCADE
+);
+
+-- =========================================
+-- 5. Goals ENUM Type
+-- =========================================
+CREATE TYPE fitness.goal_type AS ENUM (
+    'weekly_km',
+    'pace',
+    'streak'
+);
+
+-- =========================================
+-- 6. Goals Table
+-- =========================================
+CREATE TABLE fitness.goals (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    
+    user_id UUID NOT NULL,
+    
+    target_type fitness.goal_type NOT NULL,
+    target_value DECIMAL(8,2) NOT NULL CHECK (target_value > 0),
+    
+    deadline DATE NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+
+    -- Foreign Key
+    CONSTRAINT fk_goals_user
+        FOREIGN KEY (user_id)
+        REFERENCES fitness.users(id)
+        ON DELETE CASCADE
+);
+
+-- =========================================
+-- 7. Indexes (Recommended for performance)
+-- =========================================
+CREATE INDEX idx_runs_user_id ON fitness.runs(user_id);
+CREATE INDEX idx_runs_date ON fitness.runs(run_date);
+CREATE INDEX idx_goals_user_id ON fitness.goals(user_id);
+
+
+-- ============================================================
+-- End of Fitness Schema 
+-- ============================================================
+===============================================================================================================================
+
+-- ============================================
+-- Mgmt SCHEMA
+-- ============================================
+CREATE SCHEMA IF NOT EXISTS mgmt;
+
+-- ============================================
+-- TABLE: task_log
+-- ============================================
+CREATE TABLE IF NOT EXISTS mgmt.task_log (
+    id INTEGER DEFAULT 1,
+    name TEXT DEFAULT 'Chandru',
+    item TEXT,
+    date DATE,
+    start_time TIME,
+    end_time TIME,
+    duration INTERVAL,
+
+    CONSTRAINT task_log_pkey PRIMARY KEY (item, date, start_time)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_task_log_unique
+ON mgmt.task_log (item, date, start_time);
+
+-- ============================================
+-- TABLE: sprint_tickets
+-- ============================================
+CREATE TABLE IF NOT EXISTS mgmt.sprint_tickets (
+    id SERIAL PRIMARY KEY,
+    ticket_id TEXT,
+    sprint TEXT,
+    description TEXT,
+    summary TEXT,
+    status TEXT,
+
+    CONSTRAINT sprint_tickets_ticket_sprint_unique 
+    UNIQUE (ticket_id, sprint)
+);
+
+-- ============================================
+-- TABLE: sprint_review
+-- ============================================
+CREATE TABLE IF NOT EXISTS mgmt.sprint_review (
+    name TEXT DEFAULT 'Chandru',
+    user_id INTEGER DEFAULT 1,
+    what_went_well TEXT,
+    what_didnt_go_well TEXT,
+    change_to_adapt TEXT,
+    plan_of_action TEXT,
+    sprint TEXT,
+    team TEXT
+);
+
+-- (Optional but recommended primary key)
+ALTER TABLE mgmt.sprint_review
+ADD COLUMN IF NOT EXISTS id SERIAL PRIMARY KEY;
+
+-- ============================================
+-- TABLE: scrum_master_review
+-- ============================================
+CREATE TABLE IF NOT EXISTS mgmt.scrum_master_review (
+    id SERIAL PRIMARY KEY,
+    sm_name TEXT DEFAULT 'Chandru',
+    sm_id INTEGER DEFAULT 1,
+    sm_task TEXT NOT NULL,
+    completed_or_not BOOLEAN DEFAULT FALSE
+);
+
+-- ============================================
+-- TABLE: todays_task
+-- ============================================
+CREATE TABLE IF NOT EXISTS mgmt.todays_task (
+    id SERIAL PRIMARY KEY,
+    name TEXT DEFAULT 'Chandru',
+    user_id INTEGER DEFAULT 1,
+    item TEXT NOT NULL,
+    comments TEXT,
+    completed_or_not BOOLEAN,
+    date DATE
+);
+
+-- ============================================
+-- INDEXES (Optional Improvements)
+-- ============================================
+
+CREATE INDEX IF NOT EXISTS idx_sprint_tickets_sprint
+ON mgmt.sprint_tickets (sprint);
+
+CREATE INDEX IF NOT EXISTS idx_todays_task_user_date
+ON mgmt.todays_task (user_id, date);
+
+CREATE INDEX IF NOT EXISTS idx_task_log_date
+ON mgmt.task_log (date);
+
+-- ============================================================
+-- End of Mgmt Schema 
 -- ============================================================

@@ -2,21 +2,6 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: digital_world
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   redis:
     image: redis:7-alpine
     ports:
@@ -32,11 +17,9 @@ services:
     ports:
       - "8002:8002"
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/digital_world
+      DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: redis://redis:6379
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     command: uvicorn main:app --host 0.0.0.0 --port 8002 --reload
@@ -46,11 +29,9 @@ services:
     ports:
       - "8003:8003"
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/digital_world
+      DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: redis://redis:6379
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     command: uvicorn main:app --host 0.0.0.0 --port 8003 --reload
@@ -60,12 +41,11 @@ services:
     ports:
       - "8001:8001"
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/digital_world
+      DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: redis://redis:6379
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       CLAUDE_API_KEY: ${CLAUDE_API_KEY}
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     command: uvicorn main:app --host 0.0.0.0 --port 8001 --reload
@@ -87,9 +67,6 @@ services:
       fitness-api:
         condition: service_started
     command: npm run dev
-
-volumes:
-  postgres_data:
 
 networks:
   default:
