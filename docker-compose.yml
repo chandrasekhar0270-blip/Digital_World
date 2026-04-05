@@ -1,0 +1,8 @@
+version: '3.8'
+
+services:
+  # Services will be configured here
+  
+networks:
+  digital-world-network:
+    driver: bridge
