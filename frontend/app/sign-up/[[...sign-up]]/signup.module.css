@@ -1,0 +1,111 @@
+.container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  overflow: hidden;
+  padding: 24px;
+}
+
+.bgOrb1 {
+  position: absolute;
+  width: 450px;
+  height: 450px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.07) 0%, transparent 70%);
+  top: -100px;
+  right: -80px;
+  animation: float 14s ease-in-out infinite;
+}
+
+.bgOrb2 {
+  position: absolute;
+  width: 350px;
+  height: 350px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(244, 63, 94, 0.05) 0%, transparent 70%);
+  bottom: -60px;
+  left: -40px;
+  animation: float 11s ease-in-out infinite reverse;
+}
+
+@keyframes float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-15px, 25px) scale(1.04); }
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+  max-width: 440px;
+  width: 100%;
+}
+
+.branding {
+  text-align: center;
+}
+
+.logoMark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--color-accent), #d97706);
+  color: var(--color-bg);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: -0.04em;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.25);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  letter-spacing: -0.03em;
+}
+
+.subtitle {
+  margin-top: 6px;
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  font-weight: 400;
+}
+
+.formWrapper {
+  width: 100%;
+}
+
+.clerkRoot {
+  width: 100%;
+}
+
+.clerkCard {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.footer {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.footer a {
+  color: var(--color-accent);
+  font-weight: 600;
+  transition: color 0.2s;
+}
+
+.footer a:hover {
+  color: var(--color-accent-hover);
+}

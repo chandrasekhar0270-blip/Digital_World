@@ -1,0 +1,116 @@
+.pageContainer {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f3ff 0%, #e0e7ff 50%, #dbeafe 100%);
+  padding: 40px 20px;
+}
+
+.header {
+  max-width: 1200px;
+  margin: 0 auto 40px;
+}
+
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: white;
+  border: none;
+  border-radius: 8px;
+  color: #2563eb;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.backButton:hover {
+  background: #f1f5f9;
+  transform: translateX(-4px);
+}
+
+.title {
+  font-size: 40px;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0 0 8px;
+  letter-spacing: -0.5px;
+}
+
+.subtitle {
+  font-size: 16px;
+  color: #64748b;
+  margin: 0;
+  font-weight: 500;
+}
+
+.content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.moduleContainer {
+  background: white;
+  border-radius: 16px;
+  padding: 60px 40px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.placeholderCard {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.placeholderIcon {
+  font-size: 80px;
+  margin-bottom: 24px;
+}
+
+.placeholderCard h2 {
+  font-size: 32px;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0 0 16px;
+}
+
+.placeholderCard p {
+  font-size: 16px;
+  color: #64748b;
+  margin: 0 0 24px;
+  line-height: 1.6;
+}
+
+.comingSoon {
+  font-size: 14px;
+  color: #94a3b8;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-top: 40px !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .pageContainer {
+    padding: 24px 16px;
+  }
+
+  .title {
+    font-size: 28px;
+  }
+
+  .moduleContainer {
+    padding: 40px 24px;
+  }
+
+  .placeholderIcon {
+    font-size: 60px;
+  }
+
+  .placeholderCard h2 {
+    font-size: 24px;
+  }
+}
