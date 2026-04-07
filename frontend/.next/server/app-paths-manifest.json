@@ -1,6 +1,5 @@
 {
+  "/_not-found/page": "app/_not-found/page.js",
   "/page": "app/page.js",
-  "/dashboard/page": "app/dashboard/page.js",
-  "/money/page": "app/money/page.js",
-  "/api/finance/income-flow/route": "app/api/finance/income-flow/route.js"
+  "/dashboard/page": "app/dashboard/page.js"
 }

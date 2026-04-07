@@ -24,7 +24,7 @@ const products = [
     tagline: 'Financial Twin',
     description: 'Track net worth, model scenarios, and build wealth with your AI financial advisor.',
     icon: '💰',
-    href: '/money',
+    href: '/finance',
     colorVar: '--color-money',
     mutedVar: '--color-money-muted',
     status: 'Active',
