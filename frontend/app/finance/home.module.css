@@ -67,16 +67,15 @@
 }
 
 .icon {
-  font-size: 40px;
+  font-size: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 56px;
-  background: linear-gradient(135deg, var(--accent-color, #2563eb) 0%, var(--accent-color, #2563eb) 100%);
-  border-radius: 12px;
-  opacity: 0.16;
-  mix-blend-mode: multiply;
+  width: 60px;
+  height: 60px;
+  background: color-mix(in srgb, var(--accent-color, #2563eb) 12%, white);
+  border-radius: 14px;
+  border: 1.5px solid color-mix(in srgb, var(--accent-color, #2563eb) 20%, white);
 }
 
 .cardContent {

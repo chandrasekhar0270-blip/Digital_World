@@ -38,7 +38,7 @@ const products = [
     href: '/health',
     colorVar: '--color-health',
     mutedVar: '--color-health-muted',
-    status: 'Active',
+    status: 'Coming Soon',
   },
 ]
 

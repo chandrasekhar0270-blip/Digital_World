@@ -37,6 +37,14 @@ export default function FinanceHome() {
       href: '/finance/financial-twin',
       accentColor: '#059669',
     },
+    {
+      id: 'manual-corrections',
+      icon: '✏️',
+      title: 'Manual Corrections',
+      subtitle: 'Edit assets, investments & expenses',
+      href: '/finance/manual-corrections',
+      accentColor: '#D97706',
+    },
   ]
 
   return (
