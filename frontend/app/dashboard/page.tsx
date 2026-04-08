@@ -35,10 +35,10 @@ const products = [
     tagline: 'Fitness Coach · RunPulse',
     description: 'Log runs, analyze performance trends, and get AI coaching for your next PB.',
     icon: '🏃',
-    href: '/health',
+    href: '/fitness',
     colorVar: '--color-health',
     mutedVar: '--color-health-muted',
-    status: 'Coming Soon',
+    status: 'Active',
   },
 ]
 
