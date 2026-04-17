@@ -1,11 +1,15 @@
 // lib/claude.ts
-// Claude API wrapper for the AI coaching agent
-import Anthropic from "@anthropic-ai/sdk";
+// Azure AI Foundry wrapper — OpenAI-compatible endpoint
+import OpenAI from "openai";
 
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
+const client = new OpenAI({
+  apiKey: process.env.AZURE_AI_KEY!,
+  baseURL: process.env.AZURE_AI_ENDPOINT!,
 });
 
+const MODEL = process.env.AZURE_AI_MODEL ?? "Phi-4-reasoning";
+
+// ── interfaces stay identical ──
 interface RunData {
   date: string;
   distanceKm: number;
@@ -30,11 +34,9 @@ export async function getCoachingInsights(data: CoachRequest): Promise<string> {
   const now = new Date();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
-
   const dayOfMonth = now.getDate();
   const includeMTD = dayOfMonth >= 10;
 
-  // ── Split runs into ITD, YTD, MTD ──
   const itdRuns = data.allRuns;
   const ytdRuns = data.allRuns.filter(
     (r) => new Date(r.date).getFullYear() === currentYear
@@ -46,12 +48,6 @@ export async function getCoachingInsights(data: CoachRequest): Promise<string> {
       })
     : [];
 
-  // Last 7 days
-  const weekAgo = new Date();
-  weekAgo.setDate(weekAgo.getDate() - 7);
-  const weekRuns = data.allRuns.filter((r) => new Date(r.date) >= weekAgo);
-
-  // ── Helper stats ──
   const calcStats = (runs: RunData[]) => {
     if (runs.length === 0)
       return { count: 0, totalKm: 0, avgPace: 0, avgSpeed: 0, bestPace: 0, longestRun: 0 };
@@ -70,18 +66,7 @@ export async function getCoachingInsights(data: CoachRequest): Promise<string> {
   const itdStats = calcStats(itdRuns);
   const ytdStats = calcStats(ytdRuns);
   const mtdStats = calcStats(mtdRuns);
-  const weekStats = calcStats(weekRuns);
 
-  // ── Recent runs detail (last 10) ──
-  const recentRuns = data.allRuns
-    .slice(-10)
-    .map(
-      (r) =>
-        `${r.date}: ${r.distanceKm}km in ${Math.floor(r.durationSec / 60)}m${r.durationSec % 60}s (pace: ${Math.floor(r.paceMinKm)}:${String(Math.round((r.paceMinKm % 1) * 60)).padStart(2, "0")}/km, speed: ${r.speedKmh}km/h)`
-    )
-    .join("\n");
-
-  // ── Goals context ──
   const goalsText =
     data.goals.length > 0
       ? data.goals
@@ -92,71 +77,79 @@ export async function getCoachingInsights(data: CoachRequest): Promise<string> {
           .join("\n")
       : "No goals set.";
 
-  // ── Build the prompt ──
-  const systemPrompt = `You are RunPulse Coach, an expert AI running coach embedded in a fitness tracking app. You analyse the user's run data across three timeframes (ITD, YTD, MTD) and provide actionable, personalised coaching.
+  const systemPrompt = `You are RunPulse Coach, an expert AI running coach inside a fitness app. Your job is to analyse the runner's data and give sharp, personalised coaching.
 
-Your personality:
-- Supportive but direct — like a good coach who pushes you
-- Data-driven — always reference specific numbers from their data
-- Practical — give concrete next-run recommendations
-- Brief — keep each section to 2-3 sentences max
+STRICT RULES — follow exactly:
+1. NEVER add preamble, intro, or closing remarks outside the 5 sections.
+2. Output ONLY the 5 markdown sections below — nothing before, nothing after.
+3. Each section: 2-3 sentences max. Be direct. Reference actual numbers from the data.
+4. Do NOT repeat the section instruction text — just write the content.
 
-Always respond in this exact structure with these 6 sections using markdown headers:
+Respond in exactly this structure:
 
 ## 📊 Quick summary
-One-line snapshot of where they stand right now.
+One punchy sentence on where they stand right now — total distance, pace, highlight.
 
 ## 📈 Trend analysis
-Compare YTD vs ITD pace/distance${includeMTD ? ", and MTD where available" : ""}. Are they improving? Slowing down? Highlight the most important trend.
-
-## 🏃 This week
-What they did in the last 7 days. Too much? Too little? Right balance?
+Compare MTD vs YTD vs ITD pace and volume. Are they improving or stalling? Name the key trend.
 
 ## 🎯 Goal progress
-How they're tracking against their goals. If no goals, suggest one based on their data.
+Track against goals. If no goals set, suggest one specific goal based on their current level.
 
 ## 💡 Coach's recommendation
-One specific recommendation for their next run (exact distance + target pace). Plus one training tip.
+One precise next-run prescription: exact distance + target pace. Add one actionable training tip.
 
 ## 🔮 Projection
-If they keep this up, where will they be in 30 days? Project their monthly distance or pace improvement.`;
+Based on MTD consistency, where will they be by end of month and end of year? Give specific numbers.`;
 
   const userMessage = `Analyse my running data. My name is ${data.userName}.
 
-=== ITD (ALL TIME) ===
-Runs: ${itdStats.count} | Total: ${itdStats.totalKm}km | Avg pace: ${itdStats.avgPace} min/km | Best pace: ${itdStats.bestPace} min/km | Longest: ${itdStats.longestRun}km
+=== MTD (${now.toLocaleString("en-US", { month: "long" })} ${currentYear}) ===
+Runs: ${mtdStats.count} | Total: ${mtdStats.totalKm}km | Avg pace: ${mtdStats.avgPace} min/km | Best pace: ${mtdStats.bestPace} min/km | Longest: ${mtdStats.longestRun}km
 
 === YTD (${currentYear}) ===
 Runs: ${ytdStats.count} | Total: ${ytdStats.totalKm}km | Avg pace: ${ytdStats.avgPace} min/km | Best pace: ${ytdStats.bestPace} min/km | Longest: ${ytdStats.longestRun}km
-${includeMTD ? `
-=== MTD (${now.toLocaleString("en-US", { month: "long" })} ${currentYear}) ===
-Runs: ${mtdStats.count} | Total: ${mtdStats.totalKm}km | Avg pace: ${mtdStats.avgPace} min/km | Best pace: ${mtdStats.bestPace} min/km | Longest: ${mtdStats.longestRun}km
-` : `=== MTD ===
-Not included — fewer than 10 days into the month (day ${dayOfMonth}). Only ITD and YTD are considered.`}
 
-=== LAST 7 DAYS ===
-Runs: ${weekStats.count} | Total: ${weekStats.totalKm}km | Avg pace: ${weekStats.avgPace} min/km
-
-=== RECENT RUNS (last 10) ===
-${recentRuns || "No runs logged yet."}
+=== ITD (ALL TIME) ===
+Runs: ${itdStats.count} | Total: ${itdStats.totalKm}km | Avg pace: ${itdStats.avgPace} min/km | Best pace: ${itdStats.bestPace} min/km | Longest: ${itdStats.longestRun}km
 
 === ACTIVE GOALS ===
 ${goalsText}
 
 Today's date: ${now.toISOString().split("T")[0]}`;
 
-  const response = await client.messages.create({
-    model: "claude-sonnet-4-5",
-    max_tokens: 1000,
-    system: systemPrompt,
-    messages: [{ role: "user", content: userMessage }],
+  // ── Call Azure AI Foundry (OpenAI-compatible) ──
+  const response = await client.chat.completions.create({
+    model: MODEL,
+    max_tokens: 8000,
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userMessage },
+    ],
   });
 
-  // Extract text from response
-  const text = response.content
-    .filter((block: any) => block.type === "text")
-    .map((block: any) => block.text as string)
-    .join("\n");
+  const raw = response.choices[0].message.content ?? "";
 
-  return text;
+  // Phi-4-reasoning emits <think>...</think> blocks before its actual answer.
+  // The think block can be very long; handle both closed and unclosed cases.
+  let cleaned: string;
+  const thinkEnd = raw.lastIndexOf("</think>");
+  if (thinkEnd !== -1) {
+    // Closed block — take everything after it
+    cleaned = raw.slice(thinkEnd + "</think>".length).trim();
+  } else if (raw.includes("<think>")) {
+    // Unclosed block — the model ran out of tokens inside the think block;
+    // nothing useful to return, so signal the caller to retry or report the issue.
+    cleaned = "";
+  } else {
+    cleaned = raw.trim();
+  }
+
+  if (!cleaned) {
+    throw new Error(
+      "Model returned only internal reasoning. Try again or increase max_tokens."
+    );
+  }
+
+  return cleaned;
 }

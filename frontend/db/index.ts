@@ -29,46 +29,15 @@ export async function getOrCreateUser(
     )
   `;
 
-  // Check if user already exists
-  const existing = await sql`
-    SELECT id FROM fitness.users WHERE clerk_id = ${clerkId}
+  // Upsert user — safe against concurrent first-load requests for new users
+  const result = await sql`
+    INSERT INTO fitness.users (clerk_id, name, email)
+    VALUES (${clerkId}, ${name}, ${email})
+    ON CONFLICT (clerk_id) DO UPDATE
+      SET name  = EXCLUDED.name,
+          email = EXCLUDED.email
+    RETURNING id
   `;
 
-  if (existing.length > 0) {
-    await sql`
-      UPDATE fitness.users SET name = ${name}, email = ${email}
-      WHERE clerk_id = ${clerkId}
-    `;
-    return existing[0].id as string;
-  }
-
-  // New user — check for orphaned runs (runs whose user_id has no owner)
-  const orphan = await sql`
-    SELECT DISTINCT r.user_id
-    FROM fitness.runs r
-    LEFT JOIN fitness.users u ON u.id = r.user_id
-    WHERE u.id IS NULL
-    LIMIT 1
-  `;
-
-  let userId: string;
-
-  if (orphan.length > 0) {
-    // Claim the orphaned UUID so existing data becomes visible
-    userId = orphan[0].user_id as string;
-    await sql`
-      INSERT INTO fitness.users (id, clerk_id, name, email)
-      VALUES (${userId}::uuid, ${clerkId}, ${name}, ${email})
-    `;
-  } else {
-    // Fresh insert with a new UUID
-    const result = await sql`
-      INSERT INTO fitness.users (clerk_id, name, email)
-      VALUES (${clerkId}, ${name}, ${email})
-      RETURNING id
-    `;
-    userId = result[0].id as string;
-  }
-
-  return userId;
+  return result[0].id as string;
 }

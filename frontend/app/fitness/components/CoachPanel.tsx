@@ -8,27 +8,55 @@ interface CoachPanelProps {
   hasRuns: boolean;
 }
 
-// Simple markdown-to-JSX renderer for the coach response
+// Inline bold/italic parser
+function parseInline(line: string, key: number): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  const boldRegex = /\*\*(.*?)\*\*/g;
+  let lastIndex = 0;
+  let match;
+  while ((match = boldRegex.exec(line)) !== null) {
+    if (match.index > lastIndex) parts.push(line.slice(lastIndex, match.index));
+    parts.push(
+      <span key={`b-${key}-${match.index}`} style={{ fontWeight: 700, color: colors.accent }}>
+        {match[1]}
+      </span>
+    );
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < line.length) parts.push(line.slice(lastIndex));
+  return parts;
+}
+
+// Markdown-to-JSX renderer
 function renderMarkdown(text: string) {
   const lines = text.split("\n");
   const elements: React.ReactNode[] = [];
   let key = 0;
+  let sectionCount = 0;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
-    // ## Header
+    // ## Section header
     if (line.startsWith("## ")) {
+      if (sectionCount > 0) {
+        elements.push(
+          <div key={key++} style={{ height: 1, background: colors.border, margin: "16px 0" }} />
+        );
+      }
+      sectionCount++;
       elements.push(
         <div
           key={key++}
           style={{
-            fontSize: 15,
+            fontSize: 14,
             fontWeight: 700,
             color: colors.text,
-            marginTop: elements.length > 0 ? 20 : 0,
             marginBottom: 8,
             fontFamily: fonts.sans,
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
           }}
         >
           {line.replace("## ", "")}
@@ -37,57 +65,55 @@ function renderMarkdown(text: string) {
       continue;
     }
 
-    // Empty line
-    if (line.trim() === "") {
-      continue;
-    }
+    // Empty line — skip
+    if (line.trim() === "") continue;
 
-    // Bold text within paragraph
-    const parts: React.ReactNode[] = [];
-    const boldRegex = /\*\*(.*?)\*\*/g;
-    let lastIndex = 0;
-    let match;
+    const inlineParts = parseInline(line, key);
 
-    while ((match = boldRegex.exec(line)) !== null) {
-      if (match.index > lastIndex) {
-        parts.push(line.slice(lastIndex, match.index));
-      }
-      parts.push(
-        <span key={`b-${key}-${match.index}`} style={{ fontWeight: 600, color: colors.accent }}>
-          {match[1]}
-        </span>
-      );
-      lastIndex = match.index + match[0].length;
-    }
-    if (lastIndex < line.length) {
-      parts.push(line.slice(lastIndex));
-    }
-
-    // Bullet points
+    // Bullet point
     if (line.startsWith("- ") || line.startsWith("• ")) {
+      const content = parseInline(line.slice(2), key);
       elements.push(
         <div
           key={key++}
           style={{
             fontSize: 13,
             color: colors.text2,
-            lineHeight: 1.6,
-            paddingLeft: 16,
-            marginBottom: 4,
+            lineHeight: 1.65,
+            paddingLeft: 18,
+            marginBottom: 5,
             fontFamily: fonts.sans,
             position: "relative",
           }}
         >
-          <span
-            style={{
-              position: "absolute",
-              left: 0,
-              color: colors.accent,
-            }}
-          >
-            •
+          <span style={{ position: "absolute", left: 0, color: colors.accent, fontWeight: 700 }}>•</span>
+          {content}
+        </div>
+      );
+      continue;
+    }
+
+    // Numbered list (1. 2. etc.)
+    const numberedMatch = line.match(/^(\d+)\.\s+(.*)/);
+    if (numberedMatch) {
+      const content = parseInline(numberedMatch[2], key);
+      elements.push(
+        <div
+          key={key++}
+          style={{
+            fontSize: 13,
+            color: colors.text2,
+            lineHeight: 1.65,
+            paddingLeft: 22,
+            marginBottom: 5,
+            fontFamily: fonts.sans,
+            position: "relative",
+          }}
+        >
+          <span style={{ position: "absolute", left: 0, color: colors.accent, fontWeight: 700 }}>
+            {numberedMatch[1]}.
           </span>
-          {parts.length > 0 ? parts : line.slice(2)}
+          {content}
         </div>
       );
       continue;
@@ -100,12 +126,12 @@ function renderMarkdown(text: string) {
         style={{
           fontSize: 13,
           color: colors.text2,
-          lineHeight: 1.7,
+          lineHeight: 1.75,
           marginBottom: 6,
           fontFamily: fonts.sans,
         }}
       >
-        {parts.length > 0 ? parts : line}
+        {inlineParts}
       </div>
     );
   }
@@ -126,12 +152,17 @@ export function CoachPanel({ hasRuns }: CoachPanelProps) {
     try {
       const res = await fetch("/api/fitness/coach", { method: "POST" });
 
+      let data: any;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error("Coach is busy — please try again in a moment.");
+      }
+
       if (!res.ok) {
-        const data = await res.json();
         throw new Error(data.error || "Failed to get coaching insights");
       }
 
-      const data = await res.json();
       setInsights(data.insights);
       setGeneratedAt(data.generatedAt);
     } catch (err: any) {
