@@ -47,7 +47,10 @@ async function createRun(run: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(run),
   });
-  if (!res.ok) throw new Error("Failed to log run");
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error ?? "Failed to log run");
+  }
   return res.json();
 }
 

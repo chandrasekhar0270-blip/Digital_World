@@ -87,8 +87,8 @@ export async function POST(request: Request) {
     };
 
     return NextResponse.json(run, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error("POST /api/fitness/runs error:", error);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    return NextResponse.json({ error: error?.message ?? "Server error" }, { status: 500 });
   }
 }
