@@ -125,9 +125,9 @@ export default function DashboardPage() {
           [...prev, newRun].sort((a, b) => a.date.localeCompare(b.date))
         );
         setError(null);
-      } catch (err) {
+      } catch (err: any) {
         console.error(err);
-        setError("Failed to log run. Please try again.");
+        setError(err?.message || "Failed to log run. Please try again.");
       }
     },
     []
